@@ -1,8 +1,14 @@
-# iot-webserver
+# IOT Webserver
 
+## Setup
+```
+npm install
+npm start
+```
+Open the broser at: [localhost:3000](http://localhost:3000)
 ## Setting up postgres triggers
 
-Create ROOM_CLIMATE table:
+### Create ROOM_CLIMATE table:
 ```
 CREATE TABLE room_climate (
     id integer NOT NULL,
@@ -13,7 +19,7 @@ CREATE TABLE room_climate (
 );
 ```
 
-Create the update function:
+### Create the update function:
 ```
 CREATE OR REPLACE FUNCTION table_update_notify() RETURNS trigger AS $$
 DECLARE
@@ -30,8 +36,14 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-Create a trigger with the function:
+### Create a trigger with the function:
 ```
 DROP TRIGGER users_notify_insert ON users;
 CREATE TRIGGER users_notify_insert AFTER INSERT ON users FOR EACH ROW EXECUTE PROCEDURE table_update_notify();
 ```
+
+
+## TODO
+* Differentiate between sources!
+* Clean up some code ...
+* Production setup (production packing && Forever)

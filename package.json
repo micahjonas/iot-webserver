@@ -4,7 +4,7 @@
   "description": "Little webpage that displays data from postgresdb!",
   "main": "index.js",
   "scripts": {
-    "start": "webpack-dev-server --progress --colors",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Micha Schwendener",
