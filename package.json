@@ -1,0 +1,41 @@
+{
+  "name": "iot-webserver",
+  "version": "1.0.0",
+  "description": "Little webpage that displays data from postgresdb!",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server --progress --colors",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Micha Schwendener",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.2.0",
+    "babel-core": "^6.2.1",
+    "babel-loader": "^6.2.0",
+    "babel-plugin-syntax-class-properties": "^6.1.18",
+    "babel-plugin-transform-class-properties": "^6.3.0",
+    "babel-preset-es2015": "^6.1.18",
+    "babel-preset-react": "^6.1.18",
+    "babel-preset-stage-0": "^6.1.18",
+    "css-loader": "^0.23.0",
+    "file-loader": "^0.8.5",
+    "style-loader": "^0.13.0",
+    "webpack": "^1.12.9",
+    "webpack-dev-middleware": "^1.4.0",
+    "webpack-dev-server": "^1.14.0",
+    "webpack-hot-middleware": "^2.6.0"
+  },
+  "dependencies": {
+    "axios": "^0.7.0",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "faye": "^1.1.2",
+    "immutable": "^3.7.5",
+    "pg": "^4.4.3",
+    "react": "^0.14.3",
+    "react-d3-basic": "^0.12.0",
+    "react-d3-core": "^0.9.0",
+    "react-dom": "^0.14.3"
+  }
+}
