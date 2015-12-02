@@ -24,10 +24,22 @@ export default class Main extends React.Component {
   componentWillMount() {
     Axios.get('/initialdata')
       .then(function (response) {
-        const data = Object.assign([], response.data);
-        const last = response.data.pop();
+        const climate = Object.assign([], response.data);
+        const data = Object.assign([], climate[1].data);
+        console.log(data);
+        climate.map(function(item, index){
+          let last = item.data.pop()
+          item.temperature = last.temperature;
+          item.time = (new Date(last.time)).toLocaleString('en-GB');
+          item.humidity = last.humidity;
+          item.trala = last.id;
+          item.data.push(last);
+        })
+        console.log(climate);
+        const last = response.data[1].data.pop();
+        response.data[1].data.push(last);
           this.setState({
-            data: data,
+            data: climate,
             temperature: last.temperature,
             humidity: last.humidity,
             time: (new Date(last.time)).toLocaleString('en-GB')
@@ -39,19 +51,29 @@ export default class Main extends React.Component {
   }
 
   componentDidMount() {
-    const client = new Faye.Client('http://localhost:3000/faye');
+    const client = new Faye.Client('localhost:3000/faye');
     client.subscribe('/update', message => {
       console.log(message);
-      const item = Object.assign({}, message);
-      console.log(item);
+      const newItem = Object.assign({}, message);
+      console.log(newItem);
       const data = Object.assign([], this.state.data);
+      data.map(function(item){
+        console.log();
+        if(item.source === message.source){
+          item.data.shift();
+          item.data.push(newItem);
+          item.temperature = newItem.temperature;
+          item.humidity = newItem.humidity;
+          item.time = (new Date(newItem.time)).toLocaleString('en-GB');
+        }
+      });
       data.shift();
       data.push(message);
       this.setState({
         data: data,
-        temperature: item.temperature,
-        humidity: item.humidity,
-        time: (new Date(item.time)).toLocaleString('en-GB')
+        temperature: newItem.temperature,
+        humidity: newItem.humidity,
+        time: (new Date(newItem.time)).toLocaleString('en-GB')
       });
       console.log(this.state);
     });
@@ -95,8 +117,8 @@ export default class Main extends React.Component {
     let xScale = 'time';
     return (
       <div>
-        <p className="lead"> Current temperature: <strong>{this.state.temperature}&deg; C </strong>, current humidity: <strong>{this.state.humidity}%</strong></p>
-        <p>Last measurement taken: <strong>{this.state.time}</strong> </p>
+        <p className="lead"> Current temperature: <strong>{this.state.data[1].temperature}&deg; C </strong>, current humidity: <strong>{this.state.data[1].humidity}%</strong></p>
+        <p>Last measurement taken: <strong>{this.state.data[1].time}</strong> </p>
         <h2>Temperutre</h2>
           <Chart
             title={title}
@@ -107,7 +129,7 @@ export default class Main extends React.Component {
               margins={margins}
               title={title}
               height={380}
-              data={this.state.data}
+              data={this.state.data[1].data}
               chartSeries={tempSeries}
               x={x}
               xScale={xScale}
@@ -123,7 +145,7 @@ export default class Main extends React.Component {
               title={title}
               height={380}
               margins={margins}
-              data={this.state.data}
+              data={this.state.data[1].data}
               chartSeries={humSeries}
               x={x}
               xScale={xScale}

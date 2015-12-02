@@ -7,7 +7,7 @@ const compiler = webpack(webpackConfig);
 const faye = require('faye');
 const http= require('http');
 
-//var connectionString = "postgres://iotuser:iotpassword@localhost/iot";
+//const connectionString = "postgres://iotuser:iotpassword@localhost/iot";
 const connectionString = "postgres://localhost/iot";
 
 var bayeux = new faye.NodeAdapter({
@@ -21,6 +21,35 @@ var server = http.createServer(app);
 bayeux.attach(server);
 
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.get('/sensors', function(req, res){
+  var results = [];
+
+  // Get a Postgres client from the connection pool
+  pg.connect(connectionString, function(err, client, done) {
+      // Handle connection errors
+      if(err) {
+        done();
+        console.log(err);
+        return res.status(500).json({ success: false, data: err});
+      }
+
+      // SQL Query > Select Data
+      var query = client.query("SELECT DISTINCT source FROM ROOM_CLIMATE");
+
+      // Stream results back one row at a time
+      query.on('row', function(row) {
+          results.push(row);
+      });
+
+      // After all data is returned, close connection and return results
+      query.on('end', function() {
+          done();
+          return res.json(results);
+      });
+
+  });
+});
 
 
 app.get('/initialdata', function(req, res) {
@@ -37,7 +66,7 @@ app.get('/initialdata', function(req, res) {
         }
 
         // SQL Query > Select Data
-        var query = client.query("SELECT * FROM ROOM_CLIMATE ORDER BY time;");
+        var query = client.query("SELECT source, json_agg( json_build_object('id', id, 'temperature', temperature, 'humidity', humidity , 'time', time) order by time) AS data FROM ROOM_CLIMATE GROUP  BY source;");
 
         // Stream results back one row at a time
         query.on('row', function(row) {
