@@ -79,7 +79,74 @@ export default class Main extends React.Component {
     });
 
   }
-
+  render(){
+    if(this.state.data.length == 0){
+      return (<div>
+        <p className="lead">Es wurde keine Sensordaten gefunden</p>
+      </div>)
+    } else {
+      let parseDate = d3.time.format.iso.parse;
+      const margins = {left: 100, right: 100, top: 20, bottom: 50}
+      let tempSeries = [
+        {
+          field: 'temperature',
+          name: 'Temperature',
+          color: '#20418d'
+        }
+      ];
+      let humSeries = [
+        {
+          field: 'humidity',
+          name: 'Humidity',
+          color: '#00b08b'
+        }
+      ];
+      let x = function(d) {
+        return parseDate(d.time);
+      }
+      const title = '';
+      let xScale = 'time';
+      return (
+        <div>
+          <p className="lead"> Current temperature: <strong>{this.state.data[1].temperature}&deg; C </strong>, current humidity: <strong>{this.state.data[1].humidity}%</strong></p>
+          <p>Last measurement taken: <strong>{this.state.data[1].time}</strong> </p>
+          <h2>Temperutre</h2>
+            <Chart
+              title={title}
+              height={400}
+              margins={margins}
+              >
+              <LineChart
+                margins={margins}
+                title={title}
+                height={380}
+                data={this.state.data[1].data}
+                chartSeries={tempSeries}
+                x={x}
+                xScale={xScale}
+              />
+            </Chart>
+            <h2>Humidity</h2>
+            <Chart
+              title={title}
+              height={400}
+              margins={margins}
+              >
+              <LineChart
+                title={title}
+                height={380}
+                margins={margins}
+                data={this.state.data[1].data}
+                chartSeries={humSeries}
+                x={x}
+                xScale={xScale}
+              />
+            </Chart>
+        </div>
+      );
+    }
+  }
+/*
   render() {
     //let parseDate = d3.time.format("%Y-%m-%dT%H:%M:%SZ").parse;
     let parseDate = d3.time.format.iso.parse;
@@ -153,5 +220,5 @@ export default class Main extends React.Component {
           </Chart>
       </div>
     );
-  }
+  }*/
 }
