@@ -1,6 +1,7 @@
 import React from 'react';
 import { Chart } from 'react-d3-core';
 import { LineChart } from 'react-d3-basic';
+import SensorChart from './sensorchart.jsx';
 import Axios from 'axios';
 import Immutable from 'immutable';
 import Faye from 'faye';
@@ -9,14 +10,13 @@ import Faye from 'faye';
 export default class Main extends React.Component {
 
   state = {
-    temperature: 0,
-    humidity: 0,
     data:[],
-    time: (new Date()).toLocaleString('en-GB')
+    selectedSource: "",
   };
 
   constructor(props) {
     super(props);
+    this.selectSensor = this.selectSensor.bind(this);
   }
 
 
@@ -26,7 +26,6 @@ export default class Main extends React.Component {
       .then(function (response) {
         const climate = Object.assign([], response.data);
         const data = Object.assign([], climate[1].data);
-        console.log(data);
         climate.map(function(item, index){
           let last = item.data.pop()
           item.temperature = last.temperature;
@@ -36,14 +35,10 @@ export default class Main extends React.Component {
           item.data.push(last);
         })
         console.log(climate);
-        const last = response.data[1].data.pop();
-        response.data[1].data.push(last);
-          this.setState({
-            data: climate,
-            temperature: last.temperature,
-            humidity: last.humidity,
-            time: (new Date(last.time)).toLocaleString('en-GB')
-          });
+        this.setState({
+          data: climate,
+          selectedSource: climate[0].source
+        });
       }.bind(this))
       .catch(function (response) {
         console.log(response);
@@ -51,174 +46,89 @@ export default class Main extends React.Component {
   }
 
   componentDidMount() {
-    const client = new Faye.Client('localhost:3000/faye');
+    const client = new Faye.Client('/faye');
     client.subscribe('/update', message => {
-      console.log(message);
       const newItem = Object.assign({}, message);
-      console.log(newItem);
+
       const data = Object.assign([], this.state.data);
+      console.log(this.state.data);
       data.map(function(item){
-        console.log();
         if(item.source === message.source){
           item.data.shift();
           item.data.push(newItem);
           item.temperature = newItem.temperature;
           item.humidity = newItem.humidity;
+          item.airquality = newItem.airquality;
           item.time = (new Date(newItem.time)).toLocaleString('en-GB');
         }
       });
-      data.shift();
-      data.push(message);
       this.setState({
         data: data,
         temperature: newItem.temperature,
         humidity: newItem.humidity,
         time: (new Date(newItem.time)).toLocaleString('en-GB')
       });
-      console.log(this.state);
-    });
+      if(newItem.source === 10){
+        console.log('debug10 -------------')
+        console.log(newItem);
+        let test = this.state.data[0];
+        let lastel = test.data.length - 1
+        console.log(test.data[lastel]);
+        console.log('debug10 end -------------')
+      }
 
+    });
   }
+
+  selectSensor(sensor){
+    console.log('selected sensor: ', sensor);
+    this.setState({
+      selectedSource: sensor
+    });
+  }
+
+
   render(){
     if(this.state.data.length == 0){
+      console.log("hallo");
+      console.log(this.state);
       return (<div>
         <p className="lead">Es wurde keine Sensordaten gefunden</p>
       </div>)
     } else {
-      let parseDate = d3.time.format.iso.parse;
-      const margins = {left: 100, right: 100, top: 20, bottom: 50}
-      let tempSeries = [
-        {
-          field: 'temperature',
-          name: 'Temperature',
-          color: '#20418d'
+
+      let click = this.selectSensor
+      let selectedSource = this.state.selectedSource;
+      let nav = this.state.data.map(function(item){
+
+        if(item.source === selectedSource){
+          return <li className="active" key={item.source} onClick={click.bind(this, item.source)} ><a onclick="">Sensor {item.source}</a></li>
+        } else{
+          return <li key={item.source} onClick={click.bind(this, item.source)} ><a >Sensor {item.source}</a></li>
         }
-      ];
-      let humSeries = [
-        {
-          field: 'humidity',
-          name: 'Humidity',
-          color: '#00b08b'
+      });
+      let sensor = this.state.data.map(function(item, index){
+        if(item.source === selectedSource){
+          return <SensorChart data={item} />
         }
-      ];
-      let x = function(d) {
-        return parseDate(d.time);
-      }
-      const title = '';
-      let xScale = 'time';
+      })
       return (
         <div>
-          <p className="lead"> Current temperature: <strong>{this.state.data[1].temperature}&deg; C </strong>, current humidity: <strong>{this.state.data[1].humidity}%</strong></p>
-          <p>Last measurement taken: <strong>{this.state.data[1].time}</strong> </p>
-          <h2>Temperutre</h2>
-            <Chart
-              title={title}
-              height={400}
-              margins={margins}
-              >
-              <LineChart
-                margins={margins}
-                title={title}
-                height={380}
-                data={this.state.data[1].data}
-                chartSeries={tempSeries}
-                x={x}
-                xScale={xScale}
-              />
-            </Chart>
-            <h2>Humidity</h2>
-            <Chart
-              title={title}
-              height={400}
-              margins={margins}
-              >
-              <LineChart
-                title={title}
-                height={380}
-                margins={margins}
-                data={this.state.data[1].data}
-                chartSeries={humSeries}
-                x={x}
-                xScale={xScale}
-              />
-            </Chart>
+          <nav className="navbar navbar-default navbar-fixed-top">
+            <div className="container">
+              <div className="navbar-header">
+                <a className="navbar-brand" >Room Climate</a>
+              </div>
+              <div id="navbar" className="collapse navbar-collapse">
+                <ul className="nav navbar-nav">
+                  {nav}
+                </ul>
+              </div>
+            </div>
+          </nav>
+          {sensor}
         </div>
       );
     }
   }
-/*
-  render() {
-    //let parseDate = d3.time.format("%Y-%m-%dT%H:%M:%SZ").parse;
-    let parseDate = d3.time.format.iso.parse;
-    const margins = {left: 100, right: 100, top: 20, bottom: 50}
-    let chartSeries = [
-      {
-        field: 'temperature',
-        name: 'Temperature',
-        color: '#20418d'
-      },
-      {
-        field: 'humidity',
-        name: 'Humidity',
-        color: '#00b08b'
-      },
-    ];
-    let tempSeries = [
-      {
-        field: 'temperature',
-        name: 'Temperature',
-        color: '#20418d'
-      }
-    ];
-    let humSeries = [
-      {
-        field: 'humidity',
-        name: 'Humidity',
-        color: '#00b08b'
-      }
-    ];
-    let x = function(d) {
-      return parseDate(d.time);
-    }
-    const title = '';
-    let xScale = 'time';
-    return (
-      <div>
-        <p className="lead"> Current temperature: <strong>{this.state.data[1].temperature}&deg; C </strong>, current humidity: <strong>{this.state.data[1].humidity}%</strong></p>
-        <p>Last measurement taken: <strong>{this.state.data[1].time}</strong> </p>
-        <h2>Temperutre</h2>
-          <Chart
-            title={title}
-            height={400}
-            margins={margins}
-            >
-            <LineChart
-              margins={margins}
-              title={title}
-              height={380}
-              data={this.state.data[1].data}
-              chartSeries={tempSeries}
-              x={x}
-              xScale={xScale}
-            />
-          </Chart>
-          <h2>Humidity</h2>
-          <Chart
-            title={title}
-            height={400}
-            margins={margins}
-            >
-            <LineChart
-              title={title}
-              height={380}
-              margins={margins}
-              data={this.state.data[1].data}
-              chartSeries={humSeries}
-              x={x}
-              xScale={xScale}
-            />
-          </Chart>
-      </div>
-    );
-  }*/
 }

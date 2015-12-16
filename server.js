@@ -66,7 +66,7 @@ app.get('/initialdata', function(req, res) {
         }
 
         // SQL Query > Select Data
-        var query = client.query("SELECT source, json_agg( json_build_object('id', id, 'temperature', temperature, 'humidity', humidity , 'time', time) order by time) AS data FROM ROOM_CLIMATE GROUP  BY source;");
+        var query = client.query("SELECT source, json_agg( json_build_object('id', id, 'temperature', temperature, 'humidity', humidity , 'airquality',airquality,'time', time) order by time) AS data FROM ROOM_CLIMATE WHERE time > current_date - interval '36' hour GROUP  BY source;");
 
         // Stream results back one row at a time
         query.on('row', function(row) {
