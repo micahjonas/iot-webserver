@@ -1,5 +1,9 @@
 # IOT Webserver
 
+## Requirements
+
+Runs on Node.JS 4.2.1 and PostgreSQL 9.4
+
 ## Setup
 ```
 npm install
