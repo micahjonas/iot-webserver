@@ -2,6 +2,7 @@ import React from 'react';
 import { Chart } from 'react-d3-core';
 import { LineChart } from 'react-d3-basic';
 import SensorChart from './sensorchart.jsx';
+import SoundChart from './soundchart.jsx';
 import Axios from 'axios';
 import Immutable from 'immutable';
 import Faye from 'faye';
@@ -11,6 +12,7 @@ export default class Main extends React.Component {
 
   state = {
     data:[],
+    sound: [],
     selectedSource: "",
   };
 
@@ -25,7 +27,6 @@ export default class Main extends React.Component {
     Axios.get('/initialdata')
       .then(function (response) {
         const climate = Object.assign([], response.data);
-        const data = Object.assign([], climate[1].data);
         climate.map(function(item, index){
           let last = item.data.pop()
           item.temperature = last.temperature;
@@ -34,7 +35,6 @@ export default class Main extends React.Component {
           item.trala = last.id;
           item.data.push(last);
         })
-        console.log(climate);
         this.setState({
           data: climate,
           selectedSource: climate[0].source
@@ -43,6 +43,19 @@ export default class Main extends React.Component {
       .catch(function (response) {
         console.log(response);
       }.bind(this));
+
+      Axios.get('/getsound')
+        .then(function (response) {
+          console.log("hello");
+          const sound = Object.assign([], response.data);
+          console.log('sound', sound);
+          this.setState({
+            sound: sound
+          });
+        }.bind(this))
+        .catch(function (response) {
+          console.log(response);
+        }.bind(this));
   }
 
   componentDidMount() {
@@ -64,8 +77,6 @@ export default class Main extends React.Component {
       });
       this.setState({
         data: data,
-        temperature: newItem.temperature,
-        humidity: newItem.humidity,
         time: (new Date(newItem.time)).toLocaleString('en-GB')
       });
       if(newItem.source === 10){
@@ -78,6 +89,22 @@ export default class Main extends React.Component {
       }
 
     });
+
+    client.subscribe('/update_sound', message => {
+      const newItem = Object.assign({}, message);
+      if(newItem.soundlevel <= 10000){
+        const data = Object.assign([], this.state.sound);
+        data.map(function(item){
+          if(item.source === message.source){
+            item.data.shift();
+            item.data.push(newItem);
+          }
+        });
+        this.setState({
+          sound: data,
+        });
+      }
+    });
   }
 
   selectSensor(sensor){
@@ -89,7 +116,7 @@ export default class Main extends React.Component {
 
 
   render(){
-    if(this.state.data.length == 0){
+    if(this.state.data.length === 0 && this.state.sound.length === 0 ){
       console.log("hallo");
       console.log(this.state);
       return (<div>
@@ -112,6 +139,11 @@ export default class Main extends React.Component {
           return <SensorChart data={item} />
         }
       })
+      let sound = this.state.sound.map(function(item, indey){
+        if(item.source === selectedSource){
+          return <SoundChart data={item} />
+        }
+      })
       return (
         <div>
           <nav className="navbar navbar-default navbar-fixed-top">
@@ -122,11 +154,13 @@ export default class Main extends React.Component {
               <div id="navbar" className="collapse navbar-collapse">
                 <ul className="nav navbar-nav">
                   {nav}
+
                 </ul>
               </div>
             </div>
           </nav>
           {sensor}
+          {sound}
         </div>
       );
     }

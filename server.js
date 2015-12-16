@@ -84,84 +84,50 @@ app.get('/initialdata', function(req, res) {
 });
 
 
-app.get('/24hours/:id', function(req, res) {
+app.get('/getsound', function(req, res) {
 
-    const source = req.params.id;
+  var results = [];
 
-    var results = [];
+  // Get a Postgres client from the connection pool
+  pg.connect(connectionString, function(err, client, done) {
+      // Handle connection errors
+      if(err) {
+        done();
+        console.log(err);
+        return res.status(500).json({ success: false, data: err});
+      }
 
-    // Get a Postgres client from the connection pool
-    pg.connect(connectionString, function(err, client, done) {
-        // Handle connection errors
-        if(err) {
+      // SQL Query > Select Data
+      var query = client.query("SELECT source, json_agg( json_build_object('id', id, 'soundlevel', soundlevel, 'source', source, 'time', time) order by time) AS data FROM ROOM_SOUND WHERE current_timestamp - interval '2 hour' <= time and soundlevel < 10000 GROUP  BY source;");
+
+      // Stream results back one row at a time
+      query.on('row', function(row) {
+          results.push(row);
+      });
+
+      // After all data is returned, close connection and return results
+      query.on('end', function() {
           done();
-          console.log(err);
-          return res.status(500).json({ success: false, data: err});
-        }
-
-        // SQL Query > Select Data
-        var query = client.query("SELECT * FROM table ORDER BY time DESC LIMIT 1;");
-
-        // Stream results back one row at a time
-        query.on('row', function(row) {
-            results.push(row);
-        });
-
-        // After all data is returned, close connection and return results
-        query.on('end', function() {
-            done();
-            return res.json(results);
-        });
-
-    });
-
-});
-
-app.get('/blabla', function(req, res){
-  var test = { 'id':54, 'time':(new Date()).toISOString(), 'temperature':24, 'humidity':38, 'source':12};
-  bayeux.getClient().publish('/update', test);
-  res.json(test);
-});
-
-app.get('/blablu', function(req, res){
-  var test = { 'id':54, 'time':(new Date()).toISOString(), 'temperature':22, 'humidity':34, 'source':12};
-  bayeux.getClient().publish('/update', test);
-  res.json(test);
+          return res.json(results);
+      });
+  });
 });
 
 
-app.get('/24hours/:id', function(req, res) {
-
-    const source = req.params.id;
-
-    var results = [];
-
-    // Get a Postgres client from the connection pool
-    pg.connect(connectionString, function(err, client, done) {
-        // Handle connection errors
-        if(err) {
-          done();
-          console.log(err);
-          return res.status(500).json({ success: false, data: err});
-        }
-
-        // SQL Query > Select Data
-        var query = client.query("SELECT * FROM ROOM_CLIMATE WHERE source = '" + source + "' AND time > now() - interval '1 day' ORDER BY time ASC;");
-
-        // Stream results back one row at a time
-        query.on('row', function(row) {
-            results.push(row);
-        });
-
-        // After all data is returned, close connection and return results
-        query.on('end', function() {
-            done();
-            return res.json(results);
-        });
-
-    });
-
+pg.connect(connectionString, function(err, client) {
+  if(err) {
+    console.log(err);
+  }
+  client.on('notification', function(msg) {
+    const row = Object.assign({}, JSON.parse(msg.payload));
+    const time = row.time;
+    row.time = (new Date(time)).toISOString();
+    bayeux.getClient().publish('/update_sound', row);
+    console.log(row);
+  });
+  var query = client.query("LISTEN table_sound_update");
 });
+
 
 pg.connect(connectionString, function(err, client) {
   if(err) {
